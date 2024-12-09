@@ -1,0 +1,33 @@
+# Name of workflow
+name: Deploy to GreenOrg
+
+# Trigger this workflow when a PR is merged to the master branch
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - closed  # Trigger only when PR is merged
+
+# Run these jobs when trigger is fired
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3  # Checks out your code
+
+      # Authorize Salesforce Org (GreenOrg)
+      - name: Authorize Org
+        run: |
+          sfdx force:auth:password:grant --clientid ${{ secrets.CLIENT_ID }} --clientsecret ${{ secrets.CLIENT_SECRET }} --username ${{ secrets.SF_USER }} --password ${{ secrets.SF_PASS }} --setalias greenOrg
+        env:
+          SFDX_CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          SFDX_CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+
+      # Deploy metadata to the MergedOrg
+      - name: Deploy to PR MergedOrg
+        run: |
+          sfdx force:source:deploy -p force-app --targetusername greenOrg --wait 10 --testlevel RunLocalTests
